@@ -21,5 +21,7 @@
     <string name="PhoneState">Phone State, Signal Strength</string>
     <string name="CellInfo">Cellular Info</string>
     <string name="saveToFile">Save data to file</string>
+    <string name="colorWhite">#FFFFFF</string>
+    <string name="colorBlack">#000000</string>  
     
 </resources>

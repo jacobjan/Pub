@@ -24,6 +24,8 @@ public final class R {
         public static final int CellInfo=0x7f040003;
         public static final int GPSLocation=0x7f040001;
         public static final int PhoneState=0x7f040002;
+        public static final int colorBlack=0x7f040006;
+        public static final int colorWhite=0x7f040005;
         public static final int saveToFile=0x7f040004;
         public static final int trackdevice=0x7f040000;
     }

@@ -66,6 +66,7 @@ import android.widget.Toast;
  */
 public class TrackDevice extends Activity {
 	private static final int FILE_SELECT_CODE = 0;
+	PhoneStateListener mPhoneStatelistener;
 	protected int phoneASU=0;
 	protected String lac, cellId;
 			
@@ -133,41 +134,14 @@ public class TrackDevice extends Activity {
 					}
 				}
 	       };
-	         
-	       locView.setBackgroundColor(Color.parseColor("#000000"));
-	       locView.setTextColor(Color.parseColor("#FFFFFF"));
-	       locView.setMovementMethod(new ScrollingMovementMethod());
-	       locView.setText(me);
 	       
-	       PhoneStateListener mPhoneStatelistener = new PhoneStateListener() {
-		         @Override
-		         public void onSignalStrengthChanged(int asu) {
-		        	 phoneASU = asu;
-		        	 ss = "\ndBm:" + (2 * asu - 113) + " ASU :" + asu;
-		         }
-		         
-		         public void onCellLocationChanged(CellLocation celllocation) {
-		        	 String celllocstr, celllocInfo[];
-		        	 celllocstr = celllocation.toString();
-		        	 celllocstr = celllocstr.substring(1, celllocstr.length()-1);
-		        	 celllocInfo = celllocstr.split(",");
-		        	 cellLocation = "\nLac/CellID/Sec:" + celllocation.toString();
-		        	 lac = celllocInfo[0];
-		        	 cellId = celllocInfo[1];
-		         }
-		         
-		         public void onCallStateChanged(int state, String incomingNumber){
-		        	 callState = "\nCall State:" + state + " incoming:" + incomingNumber;
-		         }
-		         
-		         public void onDataConnectionStateChanged(int state) {
-		        	 dataConnectionState = "\nState:" + state;
-		         }
-		         
-		         public void onDataActivity(int direction) {
-		        	 dataActivity = "\nData Activity:" + direction;
-		         }
-		   };
+	       locView.setBackgroundColor(Color.parseColor("#000000"));
+	       locView.setTextColor(Color.parseColor("#EEEEEE"));
+	       locView.setMovementMethod(new ScrollingMovementMethod());
+	       locView.setText("Acquiring signal strengtth, GPS coordinates, ...");
+	       
+	       setupPhoneStateListener();
+	       
 		   tm.listen(mPhoneStatelistener, PhoneStateListener.LISTEN_SIGNAL_STRENGTH 
 		    		   							| PhoneStateListener.LISTEN_CELL_LOCATION
 		    		   							| PhoneStateListener.LISTEN_DATA_CONNECTION_STATE
@@ -192,8 +166,10 @@ public class TrackDevice extends Activity {
 					"\nLongitude :" + longitude +
 					"\nLatitude :" + latitude +
 					"\nAltitude :" + altitude +
-					"\nBearing :" + bearing + ss + cellLocation + dataActivity + callState +
+					"\nBearing :" + bearing + 
+					ss + cellLocation + dataActivity + callState +
 					"\nSpeed (km/hr) :" + speed;
+			
 			locView.setText(Text);
 			String fData="\n"+cltime+","+longitude +","+latitude+","+altitude+","+bearing+","+speed+","+phoneASU+
 						","+lac+","+cellId;
@@ -208,7 +184,7 @@ public class TrackDevice extends Activity {
 			}
 		    Log.i(me, Text);
 		}
-				
+			
 		@Override
 		public void onProviderDisabled(String provider) {
 			String Text = "GPS provider " + provider + " disabled"; 
@@ -226,6 +202,44 @@ public class TrackDevice extends Activity {
 		}		
 	} /* End of Class MyLocationListener */
 
+	// Set up phone state listener
+	private void setupPhoneStateListener() {
+	   mPhoneStatelistener = new PhoneStateListener() {
+		    @Override
+		    public void onSignalStrengthChanged(int asu) {
+			   ss = "";
+		       phoneASU = asu;
+		       ss = "\ndBm:" + (2 * asu - 113) + " ASU :" + asu;
+		    }
+		         
+		    public void onCellLocationChanged(CellLocation celllocation) {
+		       String celllocstr, celllocInfo[];
+		       cellLocation = "";
+		       celllocstr = celllocation.toString();
+		       celllocstr = celllocstr.substring(1, celllocstr.length()-1);
+		       celllocInfo = celllocstr.split(",");
+		       lac = celllocInfo[0];
+		       cellId = celllocInfo[1];
+		       cellLocation = "\nLac/CellID:" + lac + "/" + cellId;
+		    }
+		         
+		    public void onCallStateChanged(int state, String incomingNumber){
+		    	callState = "";
+		    	callState = "\nCall State:" + state + " incoming:" + incomingNumber;
+		    }
+		         
+		    public void onDataConnectionStateChanged(int state) {
+		       dataConnectionState = "";
+		       dataConnectionState = "\nState:" + state;
+		    }
+		         
+		    public void onDataActivity(int direction) {
+		       dataActivity = "";
+		       dataActivity = "\nData Activity:" + direction;
+		    }
+		 }; // of new PhoneStateListener
+	}
+	
 	private void buildAlertMessageNoGps() {
 	    final AlertDialog.Builder builder = new AlertDialog.Builder(this);
 	    builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
@@ -248,30 +262,32 @@ public class TrackDevice extends Activity {
 	@SuppressLint("Override")
 	public void onBackPressed() {
 	    new AlertDialog.Builder(this)
-	           .setMessage("Are you sure you want to exit?")
-	           .setCancelable(false)
-	           .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-	               public void onClick(DialogInterface dialog, int id) {
-	                   try {
-	   	       	    	if ( null != fos ) {
-		    	    		if ( buf.length() > 0) {
-		    	    			writeToFile(fos, buf);
-		    		    	}
-		    		    	fos.close();
-		    	    	}
-	                   } catch (IOException e) {
-	                	   e.printStackTrace();
-	                   }
-	                   finish();
-	               }
-	           })
-	           .setNegativeButton("No", new DialogInterface.OnClickListener() {
-	               public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-	            	    myFile.delete();
-	            	    dialog.cancel();
-	               }
-	           })
-	           .show();
+	       .setMessage("Exiting application. Save file " + logFilePath + " ?")
+	       .setCancelable(false)
+	       .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+	    	   public void onClick(DialogInterface dialog, int id) {
+	    		   try {
+	   	       	 	if ( null != fos ) {
+	   	       	 		if ( buf.length() > 0) {
+	   	       	 			writeToFile(fos, buf);
+	   	       	 		}
+	   	       	 		fos.close();
+	   	       	 		showToast( "Data save to file :" + logFilePath, Toast.LENGTH_LONG);
+	   	       	 	}
+	    		   } catch (IOException e) {
+	    			   e.printStackTrace();
+	    		   }
+	    		   finish();
+	    	   }
+	       	}) // of setPositiveButton
+	        .setNegativeButton("No", new DialogInterface.OnClickListener() {
+	            public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+	            	 myFile.delete();
+	            	 dialog.cancel();
+	            	 finish();
+	            }
+	         })
+	         .show();
 	}
 	
 	@Override
@@ -282,7 +298,6 @@ public class TrackDevice extends Activity {
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		showToast( "Data save to file :" + logFilePath, Toast.LENGTH_LONG);
 	}
 
 	protected boolean writeToFile(FileOutputStream fileoutstream, String buf) throws IOException {	    
